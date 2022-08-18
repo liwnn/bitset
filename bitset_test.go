@@ -42,6 +42,20 @@ func TestBitSet(t *testing.T) {
 	}
 }
 
+func TestBitSet_NextClearBit(t *testing.T) {
+	bs := New()
+	bs.Set(1)
+	bs.Set(2)
+
+	if i := bs.NextClearBit(0); i != 0 {
+		t.Errorf("NextClearBit(0) = %d, want 1", i)
+	}
+
+	if i := bs.NextClearBit(1); i != 3 {
+		t.Errorf("NextClearBit(1) = %d, want 3", i)
+	}
+}
+
 var N = 1000000
 
 func newBitSet() *BitSet {

@@ -9,7 +9,7 @@ const (
 // where true indicates that the bit is on (1) and false indicates the bit is off (0).
 type BitSet struct {
 	values []uint64
-	maxbit uint64
+	maxBit uint64
 }
 
 func New() *BitSet {
@@ -24,7 +24,7 @@ func NewSize(length uint64) *BitSet {
 
 // Set index to 1.
 func (b *BitSet) Set(index uint64) {
-	if index >= b.maxbit {
+	if index >= b.maxBit {
 		n := index + 1
 		b.grow(n)
 	}
@@ -33,26 +33,38 @@ func (b *BitSet) Set(index uint64) {
 
 // Get true if index is set 1, or return false.
 func (b *BitSet) Get(index uint64) bool {
-	if index >= b.maxbit {
+	if index >= b.maxBit {
 		return false
 	}
 	return (b.values[index>>unitByteSize] & (1 << (index & unitMax))) != 0
 }
 
-// set index to 0.
+// Clear sets the bit specified by the index to 0.
 func (b *BitSet) Clear(index uint64) {
-	if index >= b.maxbit {
+	if index >= b.maxBit {
 		return
 	}
-	b.values[index>>unitByteSize] &^= (1 << (index & unitMax))
+	b.values[index>>unitByteSize] &^= 1 << (index & unitMax)
 }
 
+// Reset all bits to 0.
 func (b *BitSet) Reset() {
 	var r = make([]uint64, 16)
 	var a = b.values
 	for len(a) > 0 {
 		a = a[copy(a, r):]
 	}
+}
+
+// NextClearBit return the index of the first bit that is set to false that occurs on or after
+// the specified starting index.
+func (b *BitSet) NextClearBit(fromIndex uint64) uint64 {
+	for index := fromIndex; index < b.maxBit; index++ {
+		if (b.values[index>>unitByteSize]>>(index&unitMax))&1 == 0 {
+			return index
+		}
+	}
+	return b.maxBit
 }
 
 func (b *BitSet) grow(n uint64) {
@@ -76,5 +88,5 @@ func (b *BitSet) grow(n uint64) {
 		copy(v, b.values)
 		b.values = v
 	}
-	b.maxbit = size << unitByteSize
+	b.maxBit = size << unitByteSize
 }
