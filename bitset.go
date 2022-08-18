@@ -1,8 +1,9 @@
 package bitset
 
 const (
-	unitByteSize = 6
-	unitMax      = 1<<unitByteSize - 1
+	unitByteSize        = 6
+	unitMax      uint64 = 1<<unitByteSize - 1
+	uint64Mask   uint64 = 1<<64 - 1
 )
 
 // BitSet manages a compact array of bit values, which are represented as bool,
@@ -59,9 +60,19 @@ func (b *BitSet) Reset() {
 // NextClearBit return the index of the first bit that is set to false that occurs on or after
 // the specified starting index.
 func (b *BitSet) NextClearBit(fromIndex uint64) uint64 {
-	for index := fromIndex; index < b.maxBit; index++ {
-		if (b.values[index>>unitByteSize]>>(index&unitMax))&1 == 0 {
-			return index
+	begin := fromIndex >> unitByteSize
+	for index := begin; index < uint64(len(b.values)); index++ {
+		v := b.values[index]
+		if index == begin { // first unit
+			v |= (1 << (fromIndex & unitMax)) - 1
+		}
+		if v^uint64Mask != 0 {
+			var m uint64
+			for v&1 != 0 {
+				v >>= 1
+				m++
+			}
+			return index<<unitByteSize + m // find the first bit that is set to 0
 		}
 	}
 	return b.maxBit

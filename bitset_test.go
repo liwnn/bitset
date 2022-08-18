@@ -54,6 +54,13 @@ func TestBitSet_NextClearBit(t *testing.T) {
 	if i := bs.NextClearBit(1); i != 3 {
 		t.Errorf("NextClearBit(1) = %d, want 3", i)
 	}
+
+	for i := 0; i < 100; i++ {
+		bs.Set(uint64(i))
+	}
+	if i := bs.NextClearBit(0); i != 100 {
+		t.Errorf("NextClearBit(0) = %d, want 100", i)
+	}
 }
 
 var N = 1000000
