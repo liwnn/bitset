@@ -1,5 +1,7 @@
 package bitset
 
+import "math/bits"
+
 const (
 	unitByteSize        = 6
 	unitMax      uint64 = 1<<unitByteSize - 1
@@ -26,8 +28,7 @@ func NewSize(length uint64) *BitSet {
 // Set index to 1.
 func (b *BitSet) Set(index uint64) {
 	if index >= b.size {
-		n := index + 1
-		b.grow(n)
+		b.grow(index + 1)
 	}
 	b.values[index>>unitByteSize] |= 1 << (index & unitMax)
 }
@@ -72,12 +73,8 @@ func (b *BitSet) NextClearBit(fromIndex uint64) uint64 {
 			v |= (1 << (fromIndex & unitMax)) - 1
 		}
 		if v^uint64Mask != 0 {
-			var m uint64
-			for v&1 != 0 {
-				v >>= 1
-				m++
-			}
-			return index<<unitByteSize + m // find the first bit that is set to 0
+			return index<<unitByteSize +
+				uint64(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
 		}
 	}
 	return b.size
@@ -96,9 +93,9 @@ func (b *BitSet) grow(n uint64) {
 	} else {
 		capacity := size
 		if size >= 1024 {
-			capacity += size / 4
+			capacity += size >> 2
 		} else {
-			capacity += size
+			capacity <<= 1
 		}
 		v := make([]uint64, size, capacity)
 		copy(v, b.values)
