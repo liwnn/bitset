@@ -65,15 +65,18 @@ func (b BitSet) Size() uint64 {
 // NextClearBit return the index of the first bit that is set to false that occurs on or after
 // the specified starting index.
 func (b BitSet) NextClearBit(fromIndex uint64) uint64 {
-	begin := fromIndex >> unitByteSize
-	for index := begin; index < uint64(len(b.values)); index++ {
-		v := b.values[index]
-		if index == begin { // first unit
-			v |= (1 << (fromIndex & unitMax)) - 1
-		}
-		if v != unitMask {
-			return index<<unitByteSize +
-				uint64(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
+	if index := fromIndex >> unitByteSize; index < uint64(len(b.values)) {
+		v := b.values[index] | ((1 << (fromIndex & unitMax)) - 1)
+		for {
+			if v != unitMask {
+				return index<<unitByteSize +
+					uint64(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
+			}
+			index++
+			if index >= uint64(len(b.values)) {
+				break
+			}
+			v = b.values[index]
 		}
 	}
 	return b.Size()

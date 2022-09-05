@@ -99,3 +99,12 @@ func BenchmarkClear(b *testing.B) {
 		s.Clear(n[i%N])
 	}
 }
+
+func BenchmarkNextClearBit(b *testing.B) {
+	s := newBitSet()
+	n := perm(N)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.NextClearBit(n[i%N])
+	}
+}
