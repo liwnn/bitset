@@ -80,10 +80,8 @@ func (b *BitSet) Clear(index uint64) {
 
 // Reset all bits to 0.
 func (b *BitSet) Reset() {
-	var r = make([]uint64, 16)
-	var a = b.values
-	for len(a) > 0 {
-		a = a[copy(a, r):]
+	for i := range b.values {
+		b.values[i] = 0
 	}
 	b.values = b.values[:0]
 	b.onesCount = 0
@@ -99,7 +97,7 @@ func (b BitSet) Length() int {
 	if len(b.values) == 0 {
 		return 0
 	}
-	return len(b.values)*unitBitsNum - bits.LeadingZeros64(b.values[len(b.values)-1])
+	return len(b.values)<<unitByteSize - bits.LeadingZeros64(b.values[len(b.values)-1])
 }
 
 // NextClearBit return the index of the first bit that is set to false that occurs on or after

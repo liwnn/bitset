@@ -157,7 +157,7 @@ func newBitSet() *BitSet {
 	s := NewSize(uint64(N))
 	for i := 0; i < len(s.values); i++ {
 		for j := 0; j < 8; j++ {
-			s.Set(uint64(i>>unitByteSize + j))
+			s.Set(uint64(i<<unitByteSize + j))
 		}
 	}
 	return s
