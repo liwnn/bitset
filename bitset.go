@@ -11,7 +11,8 @@ const (
 // BitSet manages a compact array of bit values, which are represented as bool,
 // where true indicates that the bit is on (1) and false indicates the bit is off (0).
 type BitSet struct {
-	values []uint64
+	values    []uint64
+	onesCount uint64
 }
 
 func New() *BitSet {
@@ -19,33 +20,61 @@ func New() *BitSet {
 }
 
 func NewSize(length uint64) *BitSet {
-	b := &BitSet{}
-	b.grow(length)
-	return b
+	n := length >> unitByteSize
+	if length&unitMax != 0 {
+		n++
+	}
+	return &BitSet{
+		values: make([]uint64, n),
+	}
 }
 
 // Set index to 1.
 func (b *BitSet) Set(index uint64) {
-	if index >= b.Size() {
-		b.grow(index + 1)
+	unitIndex := index >> unitByteSize
+	if unitIndex >= uint64(len(b.values)) {
+		b.grow(unitIndex + 1)
 	}
-	b.values[index>>unitByteSize] |= 1 << (index & unitMax)
+	x := uint64(1 << (index & unitMax))
+	if b.values[unitIndex]&x == 0 {
+		b.values[unitIndex] |= x
+		b.onesCount++
+	}
+}
+
+func (b *BitSet) grow(size uint64) {
+	if int(size) <= cap(b.values) {
+		b.values = b.values[:size]
+	} else {
+		v := make([]uint64, size, size)
+		copy(v, b.values)
+		b.values = v
+	}
 }
 
 // Get true if index is set 1, or return false.
 func (b *BitSet) Get(index uint64) bool {
-	if index >= b.Size() {
-		return false
-	}
-	return (b.values[index>>unitByteSize] & (1 << (index & unitMax))) != 0
+	unitIndex := index >> unitByteSize
+	return unitIndex < uint64(len(b.values)) && (b.values[unitIndex]&(1<<(index&unitMax))) != 0
 }
 
 // Clear sets the bit specified by the index to 0.
 func (b *BitSet) Clear(index uint64) {
-	if index >= b.Size() {
+	unitIndex := index >> unitByteSize
+	if unitIndex >= uint64(len(b.values)) {
 		return
 	}
-	b.values[index>>unitByteSize] &^= 1 << (index & unitMax)
+	x := b.values[unitIndex] & ^uint64(1<<(index&unitMax))
+	if x == b.values[unitIndex] {
+		b.onesCount--
+		return
+	}
+	b.values[unitIndex] = x
+
+	i := len(b.values) - 1
+	for ; i >= 0 && b.values[i] == 0; i-- {
+	}
+	b.values = b.values[:i+1]
 }
 
 // Reset all bits to 0.
@@ -55,6 +84,8 @@ func (b *BitSet) Reset() {
 	for len(a) > 0 {
 		a = a[copy(a, r):]
 	}
+	b.values = b.values[:0]
+	b.onesCount = 0
 }
 
 // Size return the number of bits of space actually in use by this BitSet.
@@ -65,50 +96,25 @@ func (b BitSet) Size() uint64 {
 // NextClearBit return the index of the first bit that is set to false that occurs on or after
 // the specified starting index.
 func (b BitSet) NextClearBit(fromIndex uint64) uint64 {
-	if index := fromIndex >> unitByteSize; index < uint64(len(b.values)) {
-		v := b.values[index] | ((1 << (fromIndex & unitMax)) - 1)
-		for {
-			if v != unitMask {
-				return index<<unitByteSize +
-					uint64(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
-			}
-			index++
-			if index >= uint64(len(b.values)) {
-				break
-			}
-			v = b.values[index]
-		}
+	index := fromIndex >> unitByteSize
+	if index >= uint64(len(b.values)) {
+		return fromIndex
 	}
-	return b.Size()
+	v := b.values[index] | ((1 << (fromIndex & unitMax)) - 1)
+	for {
+		if v != unitMask {
+			return index<<unitByteSize +
+				uint64(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
+		}
+		index++
+		if index >= uint64(len(b.values)) {
+			return uint64(len(b.values)) << unitByteSize
+		}
+		v = b.values[index]
+	}
 }
 
 // Cardinality returns the number of bits set to true.
-func (b BitSet) Cardinality() (count int) {
-	for _, v := range b.values {
-		count += bits.OnesCount64(v)
-	}
-	return
-}
-
-func (b *BitSet) grow(n uint64) {
-	size := n >> unitByteSize
-	if n&unitMax > 0 {
-		size++
-	}
-
-	if b.values == nil {
-		b.values = make([]uint64, size)
-	} else if int(size) <= cap(b.values) {
-		b.values = b.values[:size]
-	} else {
-		capacity := size
-		if size >= 1024 {
-			capacity += size >> 2
-		} else {
-			capacity <<= 1
-		}
-		v := make([]uint64, size, capacity)
-		copy(v, b.values)
-		b.values = v
-	}
+func (b BitSet) Cardinality() uint64 {
+	return b.onesCount
 }

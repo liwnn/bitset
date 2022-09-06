@@ -16,6 +16,13 @@ func perm(n int) []uint64 {
 func TestBitSet(t *testing.T) {
 	const size = 10000
 	b := NewSize(size)
+
+	b.Set(size - 1)
+	b.Clear(size - 1)
+	if b.Size() != 0 {
+		t.Error("Clear")
+	}
+
 	for _, v := range perm(size) {
 		b.Set(v)
 	}
@@ -68,7 +75,9 @@ var N = 1000000
 func newBitSet() *BitSet {
 	s := NewSize(uint64(N))
 	for i := 0; i < len(s.values); i++ {
-		s.values[i] = 1<<8 - 1
+		for j := 0; j < 8; j++ {
+			s.Set(uint64(i>>unitByteSize + j))
+		}
 	}
 	return s
 }
@@ -106,5 +115,13 @@ func BenchmarkNextClearBit(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s.NextClearBit(n[i%N])
+	}
+}
+
+func BenchmarkCardinality(b *testing.B) {
+	s := newBitSet()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Cardinality()
 	}
 }
