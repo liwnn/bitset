@@ -17,12 +17,6 @@ func TestBitSet(t *testing.T) {
 	const size = 10000
 	b := NewSize(size)
 
-	b.Set(size - 1)
-	b.Clear(size - 1)
-	if b.Size() != 0 {
-		t.Error("Clear")
-	}
-
 	for _, v := range perm(size) {
 		b.Set(v)
 	}
@@ -49,7 +43,84 @@ func TestBitSet(t *testing.T) {
 	}
 }
 
-func TestBitSet_NextClearBit(t *testing.T) {
+func TestClear(t *testing.T) {
+	b := New()
+	b.Set(8)
+	b.Set(9)
+	b.Clear(8)
+	b.Clear(8)
+	b.Clear(10)
+	b.Clear(64)
+	if b.Get(8) {
+		t.Error("8 shoud be clear")
+	}
+	if !b.Get(9) {
+		t.Error("9 should not be clear")
+	}
+}
+
+func TestSize(t *testing.T) {
+	b := New()
+	b.Set(8)
+	if b.Size() != unitBitsNum {
+		t.Errorf("Size should be %v", unitBitsNum)
+	}
+	b.Clear(8)
+	if b.Size() != 0 {
+		t.Error("Size need clear to 0")
+	}
+	b.Set(63)
+	if b.Size() != unitBitsNum {
+		t.Errorf("Size should be %v", unitBitsNum)
+	}
+}
+
+func TestLength(t *testing.T) {
+	b := New()
+	b.Set(8)
+	if b.Length() != 9 {
+		t.Error("Length")
+	}
+}
+
+func TestCardinality(t *testing.T) {
+	tot := uint64(64*4 + 11)
+	v := NewSize(tot)
+	checkLast := true
+	for i := uint64(0); i < tot; i++ {
+		sz := v.Cardinality()
+		if sz != i {
+			t.Errorf("Cardinality reported as %d, but it should be %d", sz, i)
+			checkLast = false
+			break
+		}
+		v.Set(i)
+	}
+	if checkLast {
+		sz := v.Cardinality()
+		if sz != tot {
+			t.Errorf("After all bits set, size reported as %d, but it should be %d", sz, tot)
+		}
+	}
+}
+
+func TestReset(t *testing.T) {
+	bs := New()
+	bs.Set(8)
+	bs.Reset()
+
+	if bs.Get(8) {
+		t.Error("Bit need clear 8")
+	}
+	if bs.Length() != 0 {
+		t.Error("Lengh need clear")
+	}
+	if bs.Size() != 0 {
+		t.Error("Size need clear")
+	}
+}
+
+func TestNextClearBit(t *testing.T) {
 	bs := New()
 	bs.Set(1)
 	bs.Set(2)
@@ -62,11 +133,21 @@ func TestBitSet_NextClearBit(t *testing.T) {
 		t.Errorf("NextClearBit(1) = %d, want 3", i)
 	}
 
-	for i := 0; i < 100; i++ {
+	if i := bs.NextClearBit(10000); i != 10000 {
+		t.Errorf("NextClearBit(1) = %d, want 10000", i)
+	}
+
+	for i := 0; i < unitBitsNum; i++ {
 		bs.Set(uint64(i))
 	}
-	if i := bs.NextClearBit(0); i != 100 {
-		t.Errorf("NextClearBit(0) = %d, want 100", i)
+	if i := bs.NextClearBit(0); i != unitBitsNum {
+		t.Errorf("NextClearBit(0) = %d, want %d", i, unitBitsNum)
+	}
+
+	bs.Set(unitBitsNum)
+
+	if i := bs.NextClearBit(0); i != unitBitsNum+1 {
+		t.Errorf("NextClearBit(0) = %d, want %d", i, unitBitsNum+1)
 	}
 }
 

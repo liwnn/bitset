@@ -4,7 +4,8 @@ import "math/bits"
 
 const (
 	unitByteSize        = 6
-	unitMax      uint64 = 1<<unitByteSize - 1
+	unitBitsNum         = 1 << unitByteSize
+	unitBitsMask uint64 = unitBitsNum - 1
 	unitMask     uint64 = 1<<64 - 1
 )
 
@@ -21,7 +22,7 @@ func New() *BitSet {
 
 func NewSize(length uint64) *BitSet {
 	n := length >> unitByteSize
-	if length&unitMax != 0 {
+	if length&unitBitsMask != 0 {
 		n++
 	}
 	return &BitSet{
@@ -35,7 +36,7 @@ func (b *BitSet) Set(index uint64) {
 	if unitIndex >= uint64(len(b.values)) {
 		b.grow(unitIndex + 1)
 	}
-	x := uint64(1 << (index & unitMax))
+	x := uint64(1 << (index & unitBitsMask))
 	if b.values[unitIndex]&x == 0 {
 		b.values[unitIndex] |= x
 		b.onesCount++
@@ -55,7 +56,7 @@ func (b *BitSet) grow(size uint64) {
 // Get true if index is set 1, or return false.
 func (b *BitSet) Get(index uint64) bool {
 	unitIndex := index >> unitByteSize
-	return unitIndex < uint64(len(b.values)) && (b.values[unitIndex]&(1<<(index&unitMax))) != 0
+	return unitIndex < uint64(len(b.values)) && (b.values[unitIndex]&(1<<(index&unitBitsMask))) != 0
 }
 
 // Clear sets the bit specified by the index to 0.
@@ -64,12 +65,12 @@ func (b *BitSet) Clear(index uint64) {
 	if unitIndex >= uint64(len(b.values)) {
 		return
 	}
-	x := b.values[unitIndex] & ^uint64(1<<(index&unitMax))
+	x := b.values[unitIndex] & ^uint64(1<<(index&unitBitsMask))
 	if x == b.values[unitIndex] {
-		b.onesCount--
 		return
 	}
 	b.values[unitIndex] = x
+	b.onesCount--
 
 	i := len(b.values) - 1
 	for ; i >= 0 && b.values[i] == 0; i-- {
@@ -93,6 +94,14 @@ func (b BitSet) Size() uint64 {
 	return uint64(len(b.values)) << unitByteSize
 }
 
+// Length return the "logical size": the index of the highest set bit plus one.
+func (b BitSet) Length() int {
+	if len(b.values) == 0 {
+		return 0
+	}
+	return len(b.values)*unitBitsNum - bits.LeadingZeros64(b.values[len(b.values)-1])
+}
+
 // NextClearBit return the index of the first bit that is set to false that occurs on or after
 // the specified starting index.
 func (b BitSet) NextClearBit(fromIndex uint64) uint64 {
@@ -100,7 +109,7 @@ func (b BitSet) NextClearBit(fromIndex uint64) uint64 {
 	if index >= uint64(len(b.values)) {
 		return fromIndex
 	}
-	v := b.values[index] | ((1 << (fromIndex & unitMax)) - 1)
+	v := b.values[index] | ((1 << (fromIndex & unitBitsMask)) - 1)
 	for {
 		if v != unitMask {
 			return index<<unitByteSize +
