@@ -87,6 +87,11 @@ func (b *BitSet) Reset() {
 	b.onesCount = 0
 }
 
+// Cardinality returns the number of bits set to true.
+func (b BitSet) Cardinality() uint {
+	return b.onesCount
+}
+
 // Size return the number of bits of space actually in use by this BitSet.
 func (b BitSet) Size() uint64 {
 	return uint64(len(b.values)) << unitByteSize
@@ -94,10 +99,11 @@ func (b BitSet) Size() uint64 {
 
 // Length return the "logical size": the index of the highest set bit plus one.
 func (b BitSet) Length() int {
-	if len(b.values) == 0 {
+	n := len(b.values)
+	if n == 0 {
 		return 0
 	}
-	return len(b.values)<<unitByteSize - bits.LeadingZeros64(b.values[len(b.values)-1])
+	return n<<unitByteSize - bits.LeadingZeros64(b.values[n-1])
 }
 
 // NextClearBit return the index of the first bit that is set to false that occurs on or after
@@ -122,7 +128,55 @@ func (b BitSet) NextClearBit(fromIndex uint) uint {
 	}
 }
 
-// Cardinality returns the number of bits set to true.
-func (b BitSet) Cardinality() uint {
-	return b.onesCount
+// NextSetBit returns the index of the first bit that is set to true that occurs on or after
+// the specified starting index. If no such bit exists then false is returned.
+// Use ForeachSetBit for traverse.
+func (b BitSet) NextSetBit(fromIndex uint) (uint, bool) {
+	index := fromIndex >> unitByteSize
+	valueLen := uint(len(b.values))
+	if index >= valueLen {
+		return 0, false
+	}
+	v := b.values[index] & (unitMask << (fromIndex & unitBitsMask))
+	for {
+		if v != 0 {
+			return index<<unitByteSize + uint(bits.TrailingZeros64(v)), true
+		}
+		index++
+		if index >= valueLen {
+			return 0, false
+		}
+		v = b.values[index]
+	}
+}
+
+// ForeachSetBit calls the do function for each bit that is set to true.
+// It is faster than use NextSetBit.
+// param - do: return true to quit.
+func (b BitSet) ForeachSetBit(fromIndex uint, do func(uint) bool) {
+	index := fromIndex >> unitByteSize
+	valueLen := uint(len(b.values))
+	if index >= valueLen {
+		return
+	}
+	v := b.values[index] & (unitMask << (fromIndex & unitBitsMask))
+	for {
+		if v != 0 {
+			offset := index << unitByteSize
+			for {
+				if do(offset + uint(bits.TrailingZeros64(v))) { // if true break.
+					return
+				}
+				v &= v - 1
+				if v == 0 {
+					break
+				}
+			}
+		}
+		index++
+		if index >= valueLen {
+			return
+		}
+		v = b.values[index]
+	}
 }

@@ -1,5 +1,7 @@
 # BitSet
-A fast bit array implement in go
+A fast bit array implement in go. Compared with other implementations, It has O(1) time complexity  
+for counting the number of 1.
+
 
 ## Usage
 ``` go
@@ -21,6 +23,24 @@ func main() {
 	if b.Get(100) {
 		fmt.Println("100 is set!")
 	}
+
+	fmt.Println("Cardinality", b.Cardinality())
+	fmt.Println("Length", b.Length())
+	fmt.Println("Size", b.Size())
+
+	fmt.Printf("NextSetBit")
+	for i, ok := b.NextSetBit(0); ok; i, ok = b.NextSetBit(i + 1) {
+		fmt.Printf(" %v", i)
+	}
+	fmt.Println()
+
+	fmt.Printf("ForeachSetBit")
+	b.ForeachSetBit(0, func(j uint) bool {
+		fmt.Printf(" %v", j)
+		return false
+	})
+	fmt.Println()
+
 	b.Clear(1)
 	if !b.Get(1) {
 		fmt.Println("1 is clear!")
@@ -30,6 +50,11 @@ func main() {
 Result:
 ```
 1 is set!
-100 is set!
-1 is clear!
+100 is set!     
+Cardinality 2   
+Length 101      
+Size 128        
+NextSetBit 1 100
+ForeachSetBit 1 100
+1 is clear!  
 ```

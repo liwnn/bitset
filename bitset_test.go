@@ -134,7 +134,7 @@ func TestNextClearBit(t *testing.T) {
 	}
 
 	if i := bs.NextClearBit(10000); i != 10000 {
-		t.Errorf("NextClearBit(1) = %d, want 10000", i)
+		t.Errorf("NextClearBit(10000) = %d, want 10000", i)
 	}
 
 	for i := 0; i < unitBitsNum; i++ {
@@ -148,6 +148,41 @@ func TestNextClearBit(t *testing.T) {
 
 	if i := bs.NextClearBit(0); i != unitBitsNum+1 {
 		t.Errorf("NextClearBit(0) = %d, want %d", i, unitBitsNum+1)
+	}
+}
+
+func TestNextSetBit(t *testing.T) {
+	bs := New()
+	bs.Set(1)
+	bs.Set(2)
+
+	if i, ok := bs.NextSetBit(0); !ok || i != 1 {
+		t.Errorf("NextSetBit(0) = %d, want 1", i)
+	}
+
+	if i, ok := bs.NextSetBit(1); !ok || i != 1 {
+		t.Errorf("NextSetBit(1) = %d, want 1", 1)
+	}
+
+	if _, ok := bs.NextSetBit(3); ok {
+		t.Errorf("NextSetBit(3) = %v, want false", ok)
+	}
+
+	if _, ok := bs.NextSetBit(10000); ok {
+		t.Errorf("NextSetBit(10000) = %v, want false", ok)
+	}
+
+	for i := 0; i < unitBitsNum; i++ {
+		bs.Clear(uint(i))
+	}
+	if _, ok := bs.NextSetBit(0); ok {
+		t.Errorf("NextSetBit(0) = %v, want false", ok)
+	}
+
+	bs.Set(unitBitsNum)
+
+	if i, ok := bs.NextSetBit(0); !ok || i != unitBitsNum {
+		t.Errorf("NextSetBit(0) = %d, want %d", i, unitBitsNum)
 	}
 }
 
@@ -181,6 +216,14 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
+func BenchmarkCardinality(b *testing.B) {
+	s := newBitSet()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Cardinality()
+	}
+}
+
 func BenchmarkClear(b *testing.B) {
 	s := newBitSet()
 	n := perm(N)
@@ -199,10 +242,25 @@ func BenchmarkNextClearBit(b *testing.B) {
 	}
 }
 
-func BenchmarkCardinality(b *testing.B) {
+func BenchmarkNextSetBit(b *testing.B) {
 	s := newBitSet()
+	n := perm(N)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		s.Cardinality()
+		s.NextSetBit(n[i%N])
+	}
+}
+
+func BenchmarkForeachSetBit(b *testing.B) {
+	b.StopTimer()
+	s := NewSize(10000)
+	for i := 0; i < 10000; i += 3 {
+		s.Set(uint(i))
+	}
+	b.StartTimer()
+	for j := 0; j < b.N; j++ {
+		s.ForeachSetBit(0, func(j uint) bool {
+			return false
+		})
 	}
 }
