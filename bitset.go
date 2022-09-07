@@ -3,24 +3,24 @@ package bitset
 import "math/bits"
 
 const (
-	unitByteSize        = 6
-	unitBitsNum         = 1 << unitByteSize
-	unitBitsMask uint64 = unitBitsNum - 1
-	unitMask     uint64 = 1<<64 - 1
+	unitByteSize = 6
+	unitBitsNum  = 1 << unitByteSize
+	unitBitsMask = unitBitsNum - 1
+	unitMask     = 1<<64 - 1
 )
 
 // BitSet manages a compact array of bit values, which are represented as bool,
 // where true indicates that the bit is on (1) and false indicates the bit is off (0).
 type BitSet struct {
 	values    []uint64
-	onesCount uint64
+	onesCount uint
 }
 
 func New() *BitSet {
 	return NewSize(1)
 }
 
-func NewSize(length uint64) *BitSet {
+func NewSize(length uint) *BitSet {
 	n := length >> unitByteSize
 	if length&unitBitsMask != 0 {
 		n++
@@ -31,9 +31,9 @@ func NewSize(length uint64) *BitSet {
 }
 
 // Set index to 1.
-func (b *BitSet) Set(index uint64) {
-	unitIndex := index >> unitByteSize
-	if unitIndex >= uint64(len(b.values)) {
+func (b *BitSet) Set(index uint) {
+	unitIndex := int(index >> unitByteSize)
+	if unitIndex >= len(b.values) {
 		b.grow(unitIndex + 1)
 	}
 	x := uint64(1 << (index & unitBitsMask))
@@ -43,29 +43,29 @@ func (b *BitSet) Set(index uint64) {
 	}
 }
 
-func (b *BitSet) grow(size uint64) {
-	if int(size) <= cap(b.values) {
+func (b *BitSet) grow(size int) {
+	if size <= cap(b.values) {
 		b.values = b.values[:size]
 	} else {
-		v := make([]uint64, size, size)
+		v := make([]uint64, size)
 		copy(v, b.values)
 		b.values = v
 	}
 }
 
 // Get true if index is set 1, or return false.
-func (b *BitSet) Get(index uint64) bool {
+func (b *BitSet) Get(index uint) bool {
 	unitIndex := index >> unitByteSize
-	return unitIndex < uint64(len(b.values)) && (b.values[unitIndex]&(1<<(index&unitBitsMask))) != 0
+	return unitIndex < uint(len(b.values)) && (b.values[unitIndex]&(1<<(index&unitBitsMask))) != 0
 }
 
 // Clear sets the bit specified by the index to 0.
-func (b *BitSet) Clear(index uint64) {
+func (b *BitSet) Clear(index uint) {
 	unitIndex := index >> unitByteSize
-	if unitIndex >= uint64(len(b.values)) {
+	if unitIndex >= uint(len(b.values)) {
 		return
 	}
-	x := b.values[unitIndex] & ^uint64(1<<(index&unitBitsMask))
+	x := b.values[unitIndex] & ^(1 << (index & unitBitsMask))
 	if x == b.values[unitIndex] {
 		return
 	}
@@ -102,26 +102,27 @@ func (b BitSet) Length() int {
 
 // NextClearBit return the index of the first bit that is set to false that occurs on or after
 // the specified starting index.
-func (b BitSet) NextClearBit(fromIndex uint64) uint64 {
+func (b BitSet) NextClearBit(fromIndex uint) uint {
 	index := fromIndex >> unitByteSize
-	if index >= uint64(len(b.values)) {
+	valueLen := uint(len(b.values))
+	if index >= valueLen {
 		return fromIndex
 	}
 	v := b.values[index] | ((1 << (fromIndex & unitBitsMask)) - 1)
 	for {
 		if v != unitMask {
 			return index<<unitByteSize +
-				uint64(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
+				uint(bits.TrailingZeros64(^v)) // find the first bit that is set to 0
 		}
 		index++
-		if index >= uint64(len(b.values)) {
-			return uint64(len(b.values)) << unitByteSize
+		if index >= valueLen {
+			return valueLen << unitByteSize
 		}
 		v = b.values[index]
 	}
 }
 
 // Cardinality returns the number of bits set to true.
-func (b BitSet) Cardinality() uint64 {
+func (b BitSet) Cardinality() uint {
 	return b.onesCount
 }

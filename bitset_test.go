@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func perm(n int) []uint64 {
-	var l []uint64
+func perm(n int) []uint {
+	var l []uint
 	for _, v := range rand.Perm(n) {
-		l = append(l, uint64(v))
+		l = append(l, uint(v))
 	}
 	return l
 }
@@ -31,13 +31,13 @@ func TestBitSet(t *testing.T) {
 	}
 
 	for i := 0; i < size/2; i++ {
-		if b.Get(uint64(i)) {
+		if b.Get(uint(i)) {
 			t.Error("Clear bit error")
 		}
 	}
 
 	for i := size / 2; i < size; i++ {
-		if !b.Get(uint64(i)) {
+		if !b.Get(uint(i)) {
 			t.Error("Clear bit error")
 		}
 	}
@@ -84,10 +84,10 @@ func TestLength(t *testing.T) {
 }
 
 func TestCardinality(t *testing.T) {
-	tot := uint64(64*4 + 11)
+	tot := uint(64*4 + 11)
 	v := NewSize(tot)
 	checkLast := true
-	for i := uint64(0); i < tot; i++ {
+	for i := uint(0); i < tot; i++ {
 		sz := v.Cardinality()
 		if sz != i {
 			t.Errorf("Cardinality reported as %d, but it should be %d", sz, i)
@@ -138,7 +138,7 @@ func TestNextClearBit(t *testing.T) {
 	}
 
 	for i := 0; i < unitBitsNum; i++ {
-		bs.Set(uint64(i))
+		bs.Set(uint(i))
 	}
 	if i := bs.NextClearBit(0); i != unitBitsNum {
 		t.Errorf("NextClearBit(0) = %d, want %d", i, unitBitsNum)
@@ -154,10 +154,10 @@ func TestNextClearBit(t *testing.T) {
 var N = 1000000
 
 func newBitSet() *BitSet {
-	s := NewSize(uint64(N))
+	s := NewSize(uint(N))
 	for i := 0; i < len(s.values); i++ {
 		for j := 0; j < 8; j++ {
-			s.Set(uint64(i<<unitByteSize + j))
+			s.Set(uint(i<<unitByteSize + j))
 		}
 	}
 	return s
