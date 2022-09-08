@@ -2,6 +2,7 @@
 A fast bit array implement in go. Compared with other implementations, It has O(1) time complexity  
 for counting the number of 1.  
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/liwnn/bitset)](https://goreportcard.com/report/github.com/liwnn/bitset)
 [![Go Reference](https://pkg.go.dev/badge/github.com/liwnn/bitset.svg)](https://pkg.go.dev/github.com/liwnn/bitset)
 
 ## Usage
