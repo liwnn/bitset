@@ -1,7 +1,8 @@
 # BitSet
 A fast bit array implement in go. Compared with other implementations, It has O(1) time complexity  
-for counting the number of 1.
+for counting the number of 1.  
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/liwnn/bitset.svg)](https://pkg.go.dev/github.com/liwnn/bitset)
 
 ## Usage
 ``` go
