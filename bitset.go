@@ -1,3 +1,4 @@
+// Package bitset implements a vector of bits that grows as needed.
 package bitset
 
 import "math/bits"
@@ -16,13 +17,15 @@ type BitSet struct {
 	onesCount uint
 }
 
+// New Creates a new bit set. All bits are false
 func New() *BitSet {
 	return NewSize(1)
 }
 
-func NewSize(length uint) *BitSet {
-	n := length >> unitByteSize
-	if length&unitBitsMask != 0 {
+// NewSize returns a new BitSet whose initial size has at least the specified size.
+func NewSize(size uint) *BitSet {
+	n := size >> unitByteSize
+	if size&unitBitsMask != 0 {
 		n++
 	}
 	return &BitSet{
